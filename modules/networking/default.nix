@@ -94,6 +94,15 @@ in
       default = [];
       description = lib.mdDoc "The list of search paths used when resolving domain names.";
     };
+
+    networking.hosts = lib.mkOption {
+      type = lib.types.attrsOf (lib.types.listOf lib.types.str);
+      default = {};
+      example = { "1.2.3.4" = [ "my-machine" "an-alias" ]; };
+      description = lib.mdDoc ''
+        Attrs mapping IPs to a list of names to add to /etc/hosts/
+      '';
+    };
   };
 
   config = {
@@ -119,5 +128,17 @@ in
       ${setNetworkServices}
     '';
 
+    environment.etc."hosts".text = ''
+      ##
+      # Host Database
+      #
+      # localhost is used to configure the loopback interface
+      # when the system is booting.  Do not change this entry.
+      ##
+      127.0.0.1       localhost
+      255.255.255.255 broadcasthost
+      ::1             localhost
+      ${lib.concatStringsSep "\n" (lib.mapAttrsToList (ip: names: "${ip} ${lib.concatStringsSep " " names}") config.networking.hosts)}
+    '';
   };
 }
